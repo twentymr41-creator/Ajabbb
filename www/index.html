@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#e4e8ee">
+<title>حسابداری نورد آهن</title>
+<style>
+  :root{
+    /* نئومورفیسم: یک رنگ پایه، نور از بالا-چپ */
+    --bg:#e4e8ee;
+    --sl:#ffffff;            /* سایه روشن */
+    --sd:#b9c1cd;            /* سایه تیره */
+    --ink:#26303b;
+    --muted:#566573;
+    --accent:#c93f17;        /* رنگ اکشن اصلی: فولاد داغ */
+    --danger:#b02a2a;
+    --ok:#1f7a4d;
+    --focus:#2f6fdb;
+
+    --raise:   7px 7px 15px var(--sd), -7px -7px 15px var(--sl);
+    --raise-sm:4px 4px 9px var(--sd), -4px -4px 9px var(--sl);
+    --inset:   inset 4px 4px 9px var(--sd), inset -4px -4px 9px var(--sl);
+    --press:   inset 5px 5px 10px var(--sd), inset -5px -5px 10px var(--sl);
+
+    --r-lg:24px; --r-md:16px; --r-pill:999px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html{background:var(--bg)}
+  body{
+    font-family:"Vazirmatn","Vazir","Segoe UI",Tahoma,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    min-height:100vh;
+    line-height:1.7;
+    font-size:16px;
+  }
+  svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  button{font:inherit;color:inherit;border:none;background:none;cursor:pointer}
+  button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+    outline:3px solid var(--focus);outline-offset:3px;
+  }
+
+  main{max-width:560px;margin:0 auto;padding:24px 18px 90px}
+  .screen{display:none}
+  .screen.active{display:block}
+
+  /* ---------- عناصر پایه ---------- */
+  .date-chip{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:7px 14px;border-radius:var(--r-pill);
+    box-shadow:var(--inset);
+    color:var(--muted);font-size:.88rem;font-weight:600;
+  }
+  .date-chip svg{width:16px;height:16px}
+
+  .topbar{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+  .topbar h2{font-size:1.4rem;font-weight:800;line-height:1.3}
+  .icon-btn{
+    width:48px;height:48px;border-radius:50%;
+    display:grid;place-items:center;
+    box-shadow:var(--raise-sm);
+    transition:box-shadow .12s;
+  }
+  .icon-btn:active{box-shadow:var(--inset)}
+  .sub{color:var(--muted);margin:-8px 0 20px;font-size:.95rem}
+
+  /* ---------- صفحه اصلی ---------- */
+  .hero{display:flex;flex-direction:column;gap:12px;align-items:flex-start;margin:8px 0 26px}
+  .hero h1{font-size:1.9rem;font-weight:800;line-height:1.25;letter-spacing:-.2px}
+
+  .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px}
+  .tile{
+    border-radius:var(--r-md);box-shadow:var(--inset);
+    padding:12px 10px;text-align:center;
+  }
+  .tile b{display:block;font-size:1.45rem;font-weight:800;line-height:1.3}
+  .tile span{font-size:.8rem;color:var(--muted);font-weight:600}
+
+  .action{
+    width:100%;display:flex;align-items:center;gap:16px;text-align:right;
+    border-radius:var(--r-lg);box-shadow:var(--raise);
+    padding:20px;margin-bottom:22px;
+    transition:box-shadow .12s;
+  }
+  .action:active,.opt:active{box-shadow:var(--press)}
+  .action .ico,.opt .ico{
+    display:grid;place-items:center;border-radius:50%;flex:none;
+    box-shadow:var(--raise-sm);
+  }
+  .action .txt,.opt .txt{display:flex;flex-direction:column;flex:1;min-width:0}
+  .action .txt strong{font-weight:800}
+  .action .txt small,.opt .txt small{color:var(--muted);font-size:.85rem;font-weight:500}
+
+  .action.primary{padding:30px 22px}
+  .action.primary .ico{width:68px;height:68px;background:var(--accent);color:#fff;box-shadow:5px 5px 12px var(--sd),-5px -5px 12px var(--sl)}
+  .action.primary .ico svg{width:32px;height:32px;stroke-width:2.5}
+  .action.primary strong{font-size:1.5rem}
+  .action.secondary .ico{width:52px;height:52px;color:var(--ink)}
+  .action.secondary strong{font-size:1.15rem}
+
+  /* ---------- گزینه‌ها ---------- */
+  .opts{display:grid;gap:18px}
+  .opt{
+    display:flex;align-items:center;gap:16px;text-align:right;width:100%;
+    border-radius:var(--r-lg);box-shadow:var(--raise);
+    padding:18px;min-height:84px;
+    transition:box-shadow .12s;
+  }
+  .opt .ico{width:52px;height:52px}
+  .opt .txt strong{font-size:1.1rem;font-weight:800}
+  .opt .go{color:var(--muted)}
+  .opt.quiet{box-shadow:var(--raise-sm);min-height:72px}
+  .opt.quiet:active{box-shadow:var(--inset)}
+  .group-label{margin:26px 4px 12px;color:var(--muted);font-size:.88rem;font-weight:700}
+
+  /* ---------- فرم ---------- */
+  form.card{
+    border-radius:var(--r-lg);box-shadow:var(--raise);
+    padding:22px 20px;display:grid;gap:18px;
+  }
+  label{display:grid;gap:7px;font-weight:700;font-size:.92rem}
+  .field{position:relative}
+  input,select,textarea{
+    font:inherit;color:var(--ink);width:100%;
+    padding:13px 16px;min-height:50px;
+    border:none;border-radius:14px;background:var(--bg);
+    box-shadow:var(--inset);
+  }
+  input::placeholder,textarea::placeholder{color:#8795a3}
+  textarea{resize:vertical;min-height:70px}
+  select{appearance:none;-webkit-appearance:none;padding-left:40px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23566573' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:left 14px center;
+  }
+  .unit{position:absolute;left:16px;bottom:13px;color:var(--muted);font-size:.85rem;font-weight:600;pointer-events:none}
+  .field.has-unit input{padding-left:86px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .row.three{grid-template-columns:1fr 1fr 1fr;gap:10px}
+  @media(max-width:480px){.row:not(.three){grid-template-columns:1fr}}
+
+  .btn-main{
+    min-height:56px;border-radius:var(--r-md);
+    background:var(--accent);color:#fff;font-weight:800;font-size:1.1rem;
+    box-shadow:5px 5px 12px var(--sd),-5px -5px 12px var(--sl);
+    transition:box-shadow .12s,transform .12s;
+  }
+  .btn-main:active{box-shadow:inset 3px 3px 8px rgba(0,0,0,.35);transform:scale(.99)}
+  .btn-main:disabled{background:var(--bg);color:#8795a3;box-shadow:var(--inset);cursor:not-allowed}
+  .btn-soft{
+    padding:10px 18px;border-radius:var(--r-pill);font-weight:700;
+    box-shadow:var(--raise-sm);
+  }
+  .btn-soft:active{box-shadow:var(--inset)}
+
+  .hint{
+    display:none;border-radius:var(--r-md);box-shadow:var(--inset);
+    padding:14px 16px;gap:10px;color:var(--ink);font-weight:600;
+  }
+  .hint.show{display:grid}
+  .hint .btn-soft{justify-self:start}
+
+  /* ---------- لیست ثبت‌ها ---------- */
+  .list-title{margin:30px 4px 12px;font-size:1rem;font-weight:800}
+  .table-wrap{overflow-x:auto;border-radius:var(--r-md);box-shadow:var(--inset);padding:6px 8px}
+  table{width:100%;border-collapse:collapse;font-size:.9rem}
+  th,td{padding:11px 8px;text-align:right;white-space:nowrap}
+  th{color:var(--muted);font-weight:700;font-size:.8rem}
+  tbody tr+tr td,tfoot td{border-top:1px solid rgba(86,101,115,.15)}
+  tfoot td{font-weight:800}
+  td.del{width:1%}
+  td.del button{color:var(--danger);font-weight:700;padding:4px 8px;border-radius:10px}
+  td.del button:active{box-shadow:var(--inset)}
+  .empty{color:var(--muted);padding:22px 10px;text-align:center;font-size:.92rem}
+  .neg{color:var(--danger);font-weight:800}
+  .pos{font-weight:800}
+
+  /* ---------- گزارش ---------- */
+  .seg{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:6px;
+    padding:6px;border-radius:var(--r-pill);box-shadow:var(--inset);margin-bottom:14px;
+  }
+  .seg button{padding:10px 4px;border-radius:var(--r-pill);font-weight:700;font-size:.92rem;color:var(--muted)}
+  .seg button.on{box-shadow:var(--raise-sm);color:var(--accent)}
+  .range-title{margin:0 4px 20px;color:var(--muted);font-weight:600;font-size:.92rem}
+
+  .stat{border-radius:var(--r-lg);box-shadow:var(--raise);padding:20px;margin-bottom:22px}
+  .stat-head{display:flex;align-items:center;gap:10px;color:var(--muted);font-weight:700}
+  .dot{width:12px;height:12px;border-radius:50%;background:var(--ink)}
+  .stat.out .dot{background:var(--accent)}
+  .stat .big{font-size:2.3rem;font-weight:800;line-height:1.3;margin-top:6px}
+  .stat .big small{font-size:1rem;font-weight:600;color:var(--muted)}
+  .stat .weight{color:var(--muted);font-weight:600;margin-bottom:14px}
+  .stat .none{color:var(--muted);font-size:.9rem;margin-top:4px}
+  .breakdown{display:none;margin-top:14px}
+  .breakdown.open{display:block}
+
+  /* ---------- پیام ---------- */
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translate(-50%,30px);
+    max-width:calc(100% - 36px);
+    padding:14px 22px;border-radius:var(--r-pill);
+    background:var(--bg);box-shadow:var(--raise);
+    font-weight:700;opacity:0;pointer-events:none;
+    transition:opacity .2s,transform .2s;z-index:10;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  .toast.ok{color:var(--ok)}
+  .toast.err{color:var(--danger)}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<main>
+
+  <!-- ========== صفحه اصلی ========== -->
+  <section id="home" class="screen active">
+    <div class="hero">
+      <h1>حسابداری نورد آهن</h1>
+      <div class="date-chip"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span id="today"></span></div>
+    </div>
+
+    <div class="summary" aria-label="خلاصه امروز">
+      <div class="tile"><b id="sumProduced">۰</b><span>تولید امروز</span></div>
+      <div class="tile"><b id="sumLoaded">۰</b><span>بارگیری امروز</span></div>
+      <div class="tile"><b id="sumStock">۰</b><span>موجودی کل</span></div>
+    </div>
+
+    <button class="action primary" data-go="choose">
+      <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+      <span class="txt"><strong>وارد کردن مقادیر</strong><small>تولید، بارگیری و انواع شمش</small></span>
+    </button>
+
+    <button class="action secondary" data-go="reportHome">
+      <span class="ico"><svg viewBox="0 0 24 24"><path d="M5 20V11M12 20V4M19 20v-6"/></svg></span>
+      <span class="txt"><strong>گزارش</strong><small>تولید، بارگیری و موجودی</small></span>
+    </button>
+  </section>
+
+  <!-- ========== انتخاب نوع مقدار ========== -->
+  <section id="choose" class="screen">
+    <div class="topbar">
+      <button class="icon-btn" data-go="home" aria-label="بازگشت"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+      <h2>چه مقداری را وارد می‌کنید؟</h2>
+    </div>
+    <div class="opts">
+      <button class="opt" data-go="produced">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M3 9l3-4h12l3 4v10H3V9zM3 9h18M9 13h6"/></svg></span>
+        <span class="txt"><strong>شمش‌های تولید شده</strong><small>ثبت تولید امروز</small></span>
+        <span class="go"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span>
+      </button>
+      <button class="opt" data-go="loaded">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M2 6h11v10H2zM13 10h4l4 3v3h-8"/><circle cx="6.5" cy="18.5" r="1.8"/><circle cx="17.5" cy="18.5" r="1.8"/></svg></span>
+        <span class="txt"><strong>شمش‌های بارگیری شده</strong><small>ثبت بار خروجی از کارخانه</small></span>
+        <span class="go"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span>
+      </button>
+    </div>
+    <div class="group-label">تنظیمات پایه</div>
+    <button class="opt quiet" data-go="types">
+      <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5"/></svg></span>
+      <span class="txt"><strong>انواع شمش</strong><small>تعریف نوع جدید برای تولید و بارگیری</small></span>
+      <span class="go"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span>
+    </button>
+  </section>
+
+  <!-- ========== انواع شمش ========== -->
+  <section id="types" class="screen">
+    <div class="topbar">
+      <button class="icon-btn" data-go="choose" aria-label="بازگشت"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+      <h2>انواع شمش</h2>
+    </div>
+    <div class="date-chip" style="margin-bottom:16px"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span class="stamp"></span></div>
+    <form class="card" data-store="types">
+      <label>نام نوع شمش
+        <input name="name" required placeholder="مثلاً شمش ۱۲۰" autocomplete="off">
+      </label>
+      <div class="row">
+        <label>ابعاد مقطع
+          <span class="field has-unit"><input name="size" placeholder="۱۲۰×۱۲۰" autocomplete="off"><span class="unit">میلی‌متر</span></span>
+        </label>
+        <label>طول
+          <span class="field has-unit"><input name="length" type="number" step="any" min="0" inputmode="decimal"><span class="unit">متر</span></span>
+        </label>
+      </div>
+      <label>توضیحات (اختیاری)
+        <textarea name="note"></textarea>
+      </label>
+      <button class="btn-main" type="submit">ثبت نوع شمش</button>
+    </form>
+    <div class="list-title">آخرین ثبت‌ها</div>
+    <div class="table-wrap" data-list="types"></div>
+  </section>
+
+  <!-- ========== شمش‌های تولید شده ========== -->
+  <section id="produced" class="screen">
+    <div class="topbar">
+      <button class="icon-btn" data-go="choose" aria-label="بازگشت"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+      <h2>شمش‌های تولید شده</h2>
+    </div>
+    <div class="date-chip" style="margin-bottom:16px"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span class="stamp"></span></div>
+    <form class="card" data-store="produced">
+      <div class="hint"><span>هنوز نوع شمشی تعریف نشده است.</span><button type="button" class="btn-soft" data-go="types">تعریف نوع شمش</button></div>
+      <label>نوع شمش
+        <select name="type" class="type-select" required></select>
+      </label>
+      <div class="row">
+        <label>تعداد
+          <span class="field has-unit"><input name="count" type="number" step="1" min="1" inputmode="numeric" required><span class="unit">عدد</span></span>
+        </label>
+        <label>وزن کل
+          <span class="field has-unit"><input name="weight" type="number" step="any" min="0" inputmode="decimal" required><span class="unit">کیلوگرم</span></span>
+        </label>
+      </div>
+      <label>توضیحات (اختیاری)
+        <textarea name="note"></textarea>
+      </label>
+      <button class="btn-main" type="submit">ثبت تولید</button>
+    </form>
+    <div class="list-title">آخرین ثبت‌ها</div>
+    <div class="table-wrap" data-list="produced"></div>
+  </section>
+
+  <!-- ========== شمش‌های بارگیری شده ========== -->
+  <section id="loaded" class="screen">
+    <div class="topbar">
+      <button class="icon-btn" data-go="choose" aria-label="بازگشت"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+      <h2>شمش‌های بارگیری شده</h2>
+    </div>
+    <div class="date-chip" style="margin-bottom:16px"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span class="stamp"></span></div>
+    <form class="card" data-store="loaded">
+      <div class="hint"><span>هنوز نوع شمشی تعریف نشده است.</span><button type="button" class="btn-soft" data-go="types">تعریف نوع شمش</button></div>
+      <label>نوع شمش
+        <select name="type" class="type-select" required></select>
+      </label>
+      <div class="row">
+        <label>تعداد
+          <span class="field has-unit"><input name="count" type="number" step="1" min="1" inputmode="numeric" required><span class="unit">عدد</span></span>
+        </label>
+        <label>وزن کل
+          <span class="field has-unit"><input name="weight" type="number" step="any" min="0" inputmode="decimal" required><span class="unit">کیلوگرم</span></span>
+        </label>
+      </div>
+      <div class="row">
+        <label>خریدار / مقصد
+          <input name="buyer" autocomplete="off">
+        </label>
+        <label>شماره بارنامه / پلاک
+          <input name="plate" autocomplete="off">
+        </label>
+      </div>
+      <label>توضیحات (اختیاری)
+        <textarea name="note"></textarea>
+      </label>
+      <button class="btn-main" type="submit">ثبت بارگیری</button>
+    </form>
+    <div class="list-title">آخرین ثبت‌ها</div>
+    <div class="table-wrap" data-list="loaded"></div>
+  </section>
+
+  <!-- ========== گزارش: انتخاب نوع ========== -->
+  <section id="reportHome" class="screen">
+    <div class="topbar">
+      <button class="icon-btn" data-go="home" aria-label="بازگشت"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+      <h2>کدام گزارش را می‌خواهید؟</h2>
+    </div>
+    <div class="opts">
+      <button class="opt" data-go="reportRange">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M5 20V11M12 20V4M19 20v-6"/></svg></span>
+        <span class="txt"><strong>گزارش تولید / بارگیری</strong><small>در یک روز یا یک هفته</small></span>
+        <span class="go"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span>
+      </button>
+      <button class="opt" data-go="reportStock">
+        <span class="ico"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 9h6M9 13h6M9 17h3"/></svg></span>
+        <span class="txt"><strong>گزارش موجودی</strong><small>باقی‌مانده هر نوع شمش</small></span>
+        <span class="go"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ========== گزارش: انتخاب بازه ========== -->
+  <section id="reportRange" class="screen">
+    <div class="topbar">
+      <button class="icon-btn" data-go="reportHome" aria-label="بازگشت"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+      <h2>گزارش چه تاریخی؟</h2>
+    </div>
+    <div class="opts">
+      <button class="opt" id="rngToday"><span class="txt"><strong>امروز</strong></span><span class="go"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span></button>
+      <button class="opt" id="rngWeek"><span class="txt"><strong>این هفته</strong><small>از شنبه تا امروز</small></span><span class="go"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span></button>
+      <button class="opt" data-go="reportPick"><span class="txt"><strong>انتخاب تاریخ</strong><small>یک روز دلخواه</small></span><span class="go"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span></button>
+    </div>
+  </section>
+
+  <!-- ========== گزارش: انتخاب تاریخ ========== -->
+  <section id="reportPick" class="screen">
+    <div class="topbar">
+      <button class="icon-btn" data-go="reportRange" aria-label="بازگشت"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+      <h2>انتخاب تاریخ</h2>
+    </div>
+    <form class="card" id="pickForm">
+      <div class="row three">
+        <label>سال <select id="pickY"></select></label>
+        <label>ماه <select id="pickM"></select></label>
+        <label>روز <select id="pickD"></select></label>
+      </div>
+      <button class="btn-main" type="submit">نمایش گزارش</button>
+    </form>
+  </section>
+
+  <!-- ========== گزارش: نتیجه ========== -->
+  <section id="reportResult" class="screen">
+    <div class="topbar">
+      <button class="icon-btn" data-go="reportHome" aria-label="بازگشت"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+      <h2>تولید و بارگیری</h2>
+    </div>
+    <div class="seg" id="seg">
+      <button data-seg="today">امروز</button>
+      <button data-seg="week">این هفته</button>
+      <button data-seg="pick">انتخاب تاریخ</button>
+    </div>
+    <div class="range-title" id="rangeTitle"></div>
+    <div id="resultBox"></div>
+  </section>
+
+  <!-- ========== گزارش: موجودی ========== -->
+  <section id="reportStock" class="screen">
+    <div class="topbar">
+      <button class="icon-btn" data-go="reportHome" aria-label="بازگشت"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+      <h2>گزارش موجودی</h2>
+    </div>
+    <p class="sub">تولید شده منهای بارگیری شده، از ابتدا تا امروز</p>
+    <div class="table-wrap" id="stockBox"></div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  // ---------- ذخیره‌سازی ----------
+  var mem = {};
+  function load(key){
+    try{
+      var v = localStorage.getItem('nord_'+key);
+      return v ? JSON.parse(v) : [];
+    }catch(e){ return mem[key] || []; }
+  }
+  function save(key, arr){
+    try{ localStorage.setItem('nord_'+key, JSON.stringify(arr)); }
+    catch(e){ mem[key] = arr; }
+  }
+
+  // ---------- تاریخ شمسی و قالب اعداد ----------
+  function shamsi(d){
+    return new Intl.DateTimeFormat('fa-IR-u-ca-persian',{year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+  }
+  function shamsiLong(d){
+    return new Intl.DateTimeFormat('fa-IR-u-ca-persian',{weekday:'long',year:'numeric',month:'long',day:'numeric'}).format(d);
+  }
+  function fa(n){ return new Intl.NumberFormat('fa-IR').format(n); }
+  function faDigits(s){ return String(s).replace(/\d/g,function(c){ return '۰۱۲۳۴۵۶۷۸۹'[c]; }); }
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+    });
+  }
+  function refreshDates(){
+    var now = new Date();
+    document.getElementById('today').textContent = shamsiLong(now);
+    document.querySelectorAll('.stamp').forEach(function(s){ s.textContent = 'تاریخ ثبت: ' + shamsi(now); });
+  }
+  function dayStart(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+  function addDays(d,n){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()+n); }
+
+  // ---------- پیام کوتاه ----------
+  var toastTimer;
+  function toast(text, type){
+    var t = document.getElementById('toast');
+    t.textContent = text;
+    t.className = 'toast show ' + (type||'ok');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.className = 'toast'; }, 2600);
+  }
+
+  // ---------- جمع‌بندی ----------
+  function summarize(rows){
+    var res = {count:0, weight:0, byType:{}};
+    rows.forEach(function(r){
+      var c = parseFloat(r.count)||0, w = parseFloat(r.weight)||0;
+      res.count += c; res.weight += w;
+      var t = res.byType[r.type] || (res.byType[r.type] = {count:0, weight:0});
+      t.count += c; t.weight += w;
+    });
+    return res;
+  }
+  function inRange(r, from, to){
+    var t = new Date(r.date).getTime();
+    return t >= from.getTime() && t < to.getTime();
+  }
+
+  // ---------- ناوبری (با دکمه برگشت گوشی) ----------
+  var screens = ['home','choose','types','produced','loaded','reportHome','reportRange','reportPick','reportResult','reportStock'];
+  var ignoreHash = null;
+  var lastReport = null;
+
+  function hashId(){ return location.hash.replace('#',''); }
+
+  function show(id){
+    if(screens.indexOf(id) < 0) id = 'home';
+    if(id === 'reportResult' && !lastReport) id = 'reportRange';
+    document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+    refreshDates();
+    if(id==='home') renderHome();
+    if(id==='produced' || id==='loaded') fillTypeSelects();
+    if(id==='types' || id==='produced' || id==='loaded') renderList(id);
+    if(id==='reportResult') renderResult();
+    if(id==='reportStock') renderStock();
+    if(id==='reportPick') initPick();
+    window.scrollTo(0,0);
+  }
+  function go(id){
+    show(id);
+    try{
+      if(hashId() !== id){ ignoreHash = id; location.hash = id; }
+    }catch(e){}
+  }
+  window.addEventListener('hashchange', function(){
+    var h = hashId();
+    if(ignoreHash === h){ ignoreHash = null; return; }
+    show(h);
+  });
+  document.addEventListener('click', function(e){
+    var t = e.target.closest('[data-go]');
+    if(t) go(t.getAttribute('data-go'));
+  });
+
+  // ---------- صفحه اصلی ----------
+  function renderHome(){
+    var s = dayStart(new Date()), e = addDays(s,1);
+    var p = load('produced'), l = load('loaded');
+    var pt = summarize(p.filter(function(r){ return inRange(r,s,e); }));
+    var lt = summarize(l.filter(function(r){ return inRange(r,s,e); }));
+    var stock = summarize(p).count - summarize(l).count;
+    document.getElementById('sumProduced').textContent = fa(pt.count);
+    document.getElementById('sumLoaded').textContent = fa(lt.count);
+    document.getElementById('sumStock').textContent = fa(stock);
+  }
+
+  // ---------- انتخاب نوع شمش در فرم‌ها ----------
+  function fillTypeSelects(){
+    var types = load('types');
+    document.querySelectorAll('form[data-store] .type-select').forEach(function(sel){
+      var form = sel.closest('form');
+      var prev = sel.value || localStorage_get('lastType_'+form.getAttribute('data-store'));
+      sel.innerHTML = '';
+      types.forEach(function(t){
+        var o = document.createElement('option');
+        o.value = t.name; o.textContent = t.name;
+        sel.appendChild(o);
+      });
+      if(prev && types.some(function(t){ return t.name===prev; })) sel.value = prev;
+      var empty = !types.length;
+      form.querySelector('.hint').classList.toggle('show', empty);
+      sel.closest('label').style.display = empty ? 'none' : '';
+      form.querySelectorAll('input,textarea,.btn-main').forEach(function(el){ el.disabled = empty; });
+    });
+  }
+  function localStorage_get(k){ try{ return localStorage.getItem('nord_'+k); }catch(e){ return mem[k]; } }
+  function localStorage_set(k,v){ try{ localStorage.setItem('nord_'+k, v); }catch(e){ mem[k]=v; } }
+
+  // ---------- جدول ثبت‌های اخیر ----------
+  var columns = {
+    types:   [['name','نام'],['size','ابعاد'],['length','طول (متر)'],['note','توضیحات']],
+    produced:[['type','نوع شمش'],['count','تعداد'],['weight','وزن (کیلوگرم)'],['note','توضیحات']],
+    loaded:  [['type','نوع شمش'],['count','تعداد'],['weight','وزن (کیلوگرم)'],['buyer','خریدار / مقصد'],['plate','بارنامه / پلاک']]
+  };
+  function renderList(key){
+    var box = document.querySelector('[data-list="'+key+'"]');
+    var rows = load(key).slice().reverse().slice(0,10);
+    if(!rows.length){
+      box.innerHTML = '<div class="empty">هنوز چیزی ثبت نشده است.</div>';
+      return;
+    }
+    // ستونی که در هیچ ردیفی مقدار ندارد نمایش داده نمی‌شود
+    var cols = columns[key].filter(function(c){
+      return rows.some(function(r){ return r[c[0]]!=null && r[c[0]]!==''; });
+    });
+    var html = '<table><thead><tr><th>تاریخ</th>';
+    cols.forEach(function(c){ html += '<th>'+c[1]+'</th>'; });
+    html += '<th></th></tr></thead><tbody>';
+    rows.forEach(function(r){
+      html += '<tr><td>'+esc(r.dateFa)+'</td>';
+      cols.forEach(function(c){
+        var v = r[c[0]];
+        if((c[0]==='count'||c[0]==='weight'||c[0]==='length') && v!=='' && v!=null) v = fa(v);
+        html += '<td>'+esc(v)+'</td>';
+      });
+      html += '<td class="del"><button data-del="'+key+'" data-id="'+r.id+'">حذف</button></td></tr>';
+    });
+    html += '</tbody></table>';
+    box.innerHTML = html;
+  }
+  document.addEventListener('click', function(e){
+    var b = e.target.closest('[data-del]');
+    if(!b) return;
+    if(!confirm('این ثبت حذف شود؟')) return;
+    var key = b.getAttribute('data-del');
+    var id = b.getAttribute('data-id');
+    save(key, load(key).filter(function(r){ return String(r.id)!==id; }));
+    renderList(key);
+    if(key==='types') fillTypeSelects();
+    toast('ثبت حذف شد','ok');
+  });
+
+  // ---------- ثبت فرم‌ها ----------
+  document.querySelectorAll('form[data-store]').forEach(function(form){
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      var key = form.getAttribute('data-store');
+      var data = {};
+      new FormData(form).forEach(function(v,k){ data[k] = String(v).trim(); });
+
+      if(key==='types'){
+        var dup = load('types').some(function(t){ return t.name === data.name; });
+        if(dup){ toast('این نوع شمش قبلاً تعریف شده است','err'); return; }
+      }
+      if(key!=='types' && !data.type){ toast('ابتدا یک نوع شمش تعریف کنید','err'); return; }
+      if(key!=='types' && !(parseFloat(data.count)>0 && parseFloat(data.weight)>0)){
+        toast('تعداد و وزن باید بیشتر از صفر باشد','err'); return;
+      }
+
+      var now = new Date();
+      data.id = now.getTime();
+      data.date = now.toISOString();
+      data.dateFa = shamsi(now);
+
+      var arr = load(key);
+      arr.push(data);
+      save(key, arr);
+
+      if(key!=='types') localStorage_set('lastType_'+key, data.type);
+      form.reset();
+      fillTypeSelects();
+      var sel = form.querySelector('.type-select');
+      if(sel) sel.value = data.type;
+      renderList(key);
+      toast('ثبت شد · ' + data.dateFa, 'ok');
+      var next = form.querySelector('input[name="count"], input[name="name"]');
+      if(next) next.focus();
+    });
+  });
+
+  // ================= گزارش‌ها =================
+  var monthNames = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+
+  function j2g(jy,jm,jd){
+    jy += 1595;
+    var days = -355668 + (365*jy) + (Math.floor(jy/33))*8 + Math.floor(((jy%33)+3)/4) + jd +
+               ((jm<7) ? (jm-1)*31 : ((jm-7)*30)+186);
+    var gy = 400*Math.floor(days/146097);
+    days %= 146097;
+    if(days>36524){
+      gy += 100*Math.floor(--days/36524);
+      days %= 36524;
+      if(days>=365) days++;
+    }
+    gy += 4*Math.floor(days/1461);
+    days %= 1461;
+    if(days>365){
+      gy += Math.floor((days-1)/365);
+      days = (days-1)%365;
+    }
+    var gd = days+1;
+    var sal = [0,31,((gy%4===0&&gy%100!==0)||(gy%400===0))?29:28,31,30,31,30,31,31,30,31,30,31];
+    var gm;
+    for(gm=0; gm<13; gm++){
+      var v = sal[gm];
+      if(gd<=v) break;
+      gd -= v;
+    }
+    return [gy,gm,gd];
+  }
+  function todayJalali(){
+    var parts = new Intl.DateTimeFormat('en-US-u-ca-persian-nu-latn',{year:'numeric',month:'numeric',day:'numeric'}).formatToParts(new Date());
+    var o = {};
+    parts.forEach(function(p){ o[p.type] = parseInt(p.value,10); });
+    return o;
+  }
+
+  function reportFor(kind){
+    var now = dayStart(new Date());
+    if(kind==='today'){
+      return {kind:'today', from:now, to:addDays(now,1), label:'امروز · ' + shamsi(now)};
+    }
+    var s = addDays(now, -((now.getDay()+1)%7));   // هفته از شنبه شروع می‌شود
+    return {kind:'week', from:s, to:addDays(now,1), label:'این هفته · از ' + shamsi(s) + ' تا ' + shamsi(now)};
+  }
+
+  function statCard(title, cls, sum, id){
+    var html = '<div class="stat '+cls+'"><div class="stat-head"><span class="dot"></span>'+title+'</div>' +
+      '<div class="big">'+fa(sum.count)+' <small>شمش</small></div>' +
+      '<div class="weight">وزن کل: '+fa(sum.weight)+' کیلوگرم</div>';
+    var types = Object.keys(sum.byType);
+    if(!types.length){
+      return html + '<div class="none">در این بازه چیزی ثبت نشده است.</div></div>';
+    }
+    var label = title.indexOf('تولید')>-1 ? 'شمش‌های تولید شده از چه نوع بودند؟' : 'شمش‌های بارگیری شده از چه نوع بودند؟';
+    html += '<button class="btn-soft" data-toggle="'+id+'">'+label+'</button>';
+    html += '<div class="breakdown" id="'+id+'"><div class="table-wrap"><table><thead><tr><th>نوع شمش</th><th>تعداد</th><th>وزن (کیلوگرم)</th></tr></thead><tbody>';
+    types.forEach(function(t){
+      html += '<tr><td>'+esc(t)+'</td><td>'+fa(sum.byType[t].count)+'</td><td>'+fa(sum.byType[t].weight)+'</td></tr>';
+    });
+    return html + '</tbody></table></div></div></div>';
+  }
+
+  function renderResult(){
+    var r = lastReport;
+    document.querySelectorAll('#seg button').forEach(function(b){
+      b.classList.toggle('on', b.getAttribute('data-seg')===r.kind);
+    });
+    var produced = summarize(load('produced').filter(function(x){ return inRange(x,r.from,r.to); }));
+    var loaded   = summarize(load('loaded').filter(function(x){ return inRange(x,r.from,r.to); }));
+    document.getElementById('rangeTitle').textContent = r.label;
+    document.getElementById('resultBox').innerHTML =
+      statCard('شمش تولید شده', '', produced, 'bdProduced') +
+      statCard('شمش بارگیری شده', 'out', loaded, 'bdLoaded');
+  }
+
+  document.addEventListener('click', function(e){
+    var t = e.target.closest('[data-toggle]');
+    if(!t) return;
+    document.getElementById(t.getAttribute('data-toggle')).classList.toggle('open');
+  });
+
+  document.getElementById('rngToday').addEventListener('click', function(){ lastReport = reportFor('today'); go('reportResult'); });
+  document.getElementById('rngWeek').addEventListener('click', function(){ lastReport = reportFor('week'); go('reportResult'); });
+  document.getElementById('seg').addEventListener('click', function(e){
+    var b = e.target.closest('[data-seg]');
+    if(!b) return;
+    var k = b.getAttribute('data-seg');
+    if(k==='pick'){ go('reportPick'); return; }
+    lastReport = reportFor(k);
+    renderResult();
+  });
+
+  // انتخاب تاریخ شمسی
+  function fillDays(){
+    var m = parseInt(document.getElementById('pickM').value,10);
+    var dSel = document.getElementById('pickD');
+    var max = m<=6 ? 31 : 30;
+    var cur = parseInt(dSel.value,10) || 1;
+    dSel.innerHTML = '';
+    for(var d=1; d<=max; d++){
+      var o = document.createElement('option');
+      o.value = d; o.textContent = faDigits(d);
+      dSel.appendChild(o);
+    }
+    dSel.value = Math.min(cur,max);
+  }
+  function initPick(){
+    var tj = todayJalali();
+    var y = document.getElementById('pickY'), m = document.getElementById('pickM');
+    y.innerHTML = ''; m.innerHTML = '';
+    for(var yy=tj.year; yy>=tj.year-5; yy--){
+      var o = document.createElement('option');
+      o.value = yy; o.textContent = faDigits(yy);
+      y.appendChild(o);
+    }
+    monthNames.forEach(function(n,i){
+      var o = document.createElement('option');
+      o.value = i+1; o.textContent = n;
+      m.appendChild(o);
+    });
+    m.value = tj.month;
+    document.getElementById('pickD').innerHTML = '<option value="'+tj.day+'"></option>';
+    document.getElementById('pickD').value = tj.day;
+    fillDays();
+    document.getElementById('pickD').value = tj.day;
+  }
+  document.getElementById('pickM').addEventListener('change', fillDays);
+  document.getElementById('pickForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var g = j2g(parseInt(document.getElementById('pickY').value,10),
+                parseInt(document.getElementById('pickM').value,10),
+                parseInt(document.getElementById('pickD').value,10));
+    var s = new Date(g[0], g[1]-1, g[2]);
+    lastReport = {kind:'pick', from:s, to:addDays(s,1), label:shamsi(s)};
+    go('reportResult');
+  });
+
+  // گزارش موجودی
+  function renderStock(){
+    var prod = summarize(load('produced')).byType;
+    var out  = summarize(load('loaded')).byType;
+    var names = [];
+    load('types').forEach(function(t){ if(names.indexOf(t.name)<0) names.push(t.name); });
+    Object.keys(prod).concat(Object.keys(out)).forEach(function(n){ if(names.indexOf(n)<0) names.push(n); });
+    var box = document.getElementById('stockBox');
+    if(!names.length){
+      box.innerHTML = '<div class="empty">هنوز شمشی ثبت نشده است.</div>';
+      return;
+    }
+    var tot = {pc:0,pw:0,lc:0,lw:0};
+    var html = '<table><thead><tr><th>نوع شمش</th><th>تولید</th><th>بارگیری</th><th>موجودی (عدد)</th><th>موجودی (کیلوگرم)</th></tr></thead><tbody>';
+    names.forEach(function(n){
+      var p = prod[n] || {count:0,weight:0}, l = out[n] || {count:0,weight:0};
+      var rc = p.count - l.count, rw = p.weight - l.weight;
+      tot.pc+=p.count; tot.pw+=p.weight; tot.lc+=l.count; tot.lw+=l.weight;
+      html += '<tr><td>'+esc(n)+'</td><td>'+fa(p.count)+'</td><td>'+fa(l.count)+'</td>' +
+        '<td class="'+(rc<0?'neg':'pos')+'">'+fa(rc)+'</td><td class="'+(rw<0?'neg':'pos')+'">'+fa(rw)+'</td></tr>';
+    });
+    html += '</tbody><tfoot><tr><td>جمع کل</td><td>'+fa(tot.pc)+'</td><td>'+fa(tot.lc)+'</td><td>'+fa(tot.pc-tot.lc)+'</td><td>'+fa(tot.pw-tot.lw)+'</td></tr></tfoot></table>';
+    box.innerHTML = html;
+  }
+
+  show(hashId());
+})();
+</script>
+</body>
+</html>
