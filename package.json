@@ -1,0 +1,15 @@
+{
+  "name": "hesabdari-android",
+  "version": "1.0.0",
+  "description": "Accounting app",
+  "scripts": {
+    "build": "mkdir -p www"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/core": "^7.4.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.3"
+  }
+}
