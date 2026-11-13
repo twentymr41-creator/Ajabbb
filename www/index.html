@@ -185,6 +185,37 @@
   .seg button{padding:10px 4px;border-radius:var(--r-pill);font-weight:700;font-size:.92rem;color:var(--muted)}
   .seg button.on{box-shadow:var(--raise-sm);color:var(--accent)}
   .dg-title{font-weight:800;font-size:.95rem;margin-bottom:8px}
+  /* ---------- لیست بازشونده نوع شمش → ابعاد ---------- */
+  .acc{display:grid;gap:14px}
+  .acc-head{
+    width:100%;display:flex;align-items:center;gap:10px;text-align:right;
+    padding:15px 16px;border-radius:var(--r-md);box-shadow:var(--raise-sm);
+    transition:box-shadow .12s;
+  }
+  .acc-head.open{box-shadow:var(--inset)}
+  .acc-name{font-weight:800;flex:1}
+  .acc-sum{color:var(--muted);font-weight:700;font-size:.88rem}
+  .chev{width:18px;height:18px;color:var(--muted);transition:transform .15s}
+  .acc-head.open .chev{transform:rotate(180deg)}
+  .acc-body{display:none;padding:14px 0 4px}
+  .acc-body.open{display:grid;gap:12px}
+  .size-row{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    width:calc(100% - 16px);margin-inline-start:16px;
+    padding:12px 16px;border-radius:14px;box-shadow:var(--raise-sm);
+    font-weight:700;text-align:right;transition:box-shadow .12s;
+  }
+  .size-row .sv{color:var(--muted);font-size:.88rem}
+  .size-row.open{box-shadow:var(--inset);color:var(--accent)}
+  .size-detail{
+    display:none;width:calc(100% - 16px);margin-inline-start:16px;
+    padding:4px 16px 8px;font-size:.92rem;
+  }
+  .size-detail.open{display:grid;gap:6px}
+  .size-detail div{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid rgba(86,101,115,.15)}
+  .size-detail div:last-child{border-bottom:none}
+  .size-detail span:first-child{color:var(--muted);font-weight:600}
+  .size-detail b{font-weight:800}
   .range-title{margin:0 4px 20px;color:var(--muted);font-weight:600;font-size:.92rem}
 
   .stat{border-radius:var(--r-lg);box-shadow:var(--raise);padding:20px;margin-bottom:22px}
@@ -445,7 +476,7 @@
       <h2>گزارش موجودی</h2>
     </div>
     <p class="sub">تولید شده منهای بارگیری شده، از ابتدا تا امروز</p>
-    <div class="table-wrap" id="stockBox"></div>
+    <div id="stockBox"></div>
   </section>
 
 </main>
@@ -756,21 +787,75 @@
     return {kind:'week', from:s, to:addDays(now,1), label:'این هفته · از ' + shamsi(s) + ' تا ' + shamsi(now)};
   }
 
+  // ---- گروه‌بندی بر اساس نام شمش؛ ابعاد زیرمجموعه‌ی نام است ----
+  function typeMap(){
+    var m = {};
+    load('types').forEach(function(t){ m[typeLabel(t)] = t; });
+    return m;
+  }
+  function sizeDisp(size){ return size ? '\u2066' + size + '\u2069' : 'بدون ابعاد'; }
+  function makeGroups(map, zero, add){
+    var tm = typeMap(), groups = {}, list = [];
+    Object.keys(map).forEach(function(label){
+      var t = tm[label];
+      var name = t ? String(t.name).trim() : label;
+      var size = t ? String(t.size||'').trim() : '';
+      var g = groups[name];
+      if(!g){ g = groups[name] = {name:name, items:[], total:zero()}; list.push(g); }
+      g.items.push({size:size, v:map[label]});
+      g.total = add(g.total, map[label]);
+    });
+    list.sort(function(x,y){ return x.name.localeCompare(y.name,'fa'); });
+    return list;
+  }
+  var accN = 0;
+  // o.sum(total) متن کنار نام، o.short(v) متن کنار ابعاد، o.detail(v) جزئیات با لمس ابعاد
+  function accHTML(groups, o){
+    var html = '<div class="acc">';
+    groups.forEach(function(g){
+      var gid = 'acc' + (++accN);
+      html += '<div><button type="button" class="acc-head" data-acc="'+gid+'" aria-expanded="false">' +
+        '<span class="acc-name">'+esc(g.name)+'</span>' +
+        '<span class="acc-sum '+(o.cls?o.cls(g.total):'')+'">'+o.sum(g.total)+'</span>' +
+        '<svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>' +
+        '<div class="acc-body" id="'+gid+'">';
+      g.items.forEach(function(it){
+        var sid = 'acc' + (++accN);
+        html += '<button type="button" class="size-row" data-acc="'+sid+'" aria-expanded="false"><span>'+esc(sizeDisp(it.size))+'</span>' +
+          '<span class="sv '+(o.cls?o.cls(it.v):'')+'">'+o.short(it.v)+'</span></button>' +
+          '<div class="size-detail" id="'+sid+'">'+o.detail(it.v)+'</div>';
+      });
+      html += '</div></div>';
+    });
+    return html + '</div>';
+  }
+  document.addEventListener('click', function(e){
+    var t = e.target.closest('[data-acc]');
+    if(!t) return;
+    var open = !t.classList.contains('open');
+    t.classList.toggle('open', open);
+    t.setAttribute('aria-expanded', open);
+    document.getElementById(t.getAttribute('data-acc')).classList.toggle('open', open);
+  });
+
   function statCard(title, cls, sum, id){
     var html = '<div class="stat '+cls+'"><div class="stat-head"><span class="dot"></span>'+title+'</div>' +
       '<div class="big">'+fa(sum.count)+' <small>شمش</small></div>' +
       '<div class="weight">وزن کل: '+fa(sum.weight)+' کیلوگرم</div>';
-    var types = Object.keys(sum.byType);
-    if(!types.length){
+    if(!Object.keys(sum.byType).length){
       return html + '<div class="none">در این بازه چیزی ثبت نشده است.</div></div>';
     }
     var label = title.indexOf('تولید')>-1 ? 'شمش‌های تولید شده از چه نوع بودند؟' : 'شمش‌های بارگیری شده از چه نوع بودند؟';
     html += '<button class="btn-soft" data-toggle="'+id+'">'+label+'</button>';
-    html += '<div class="breakdown" id="'+id+'"><div class="table-wrap"><table><thead><tr><th>نوع شمش</th><th>تعداد</th><th>وزن (کیلوگرم)</th></tr></thead><tbody>';
-    types.forEach(function(t){
-      html += '<tr><td>'+esc(t)+'</td><td>'+fa(sum.byType[t].count)+'</td><td>'+fa(sum.byType[t].weight)+'</td></tr>';
-    });
-    return html + '</tbody></table></div></div></div>';
+    var groups = makeGroups(sum.byType,
+      function(){ return {count:0, weight:0}; },
+      function(a,b){ return {count:a.count+b.count, weight:a.weight+b.weight}; });
+    html += '<div class="breakdown" id="'+id+'">' + accHTML(groups, {
+      sum:    function(v){ return fa(v.count)+' شمش'; },
+      short:  function(v){ return fa(v.count)+' شمش'; },
+      detail: function(v){ return '<div><span>تعداد</span><b>'+fa(v.count)+' شمش</b></div><div><span>وزن</span><b>'+fa(v.weight)+' کیلوگرم</b></div>'; }
+    }) + '</div></div>';
+    return html;
   }
 
   function renderResult(){
@@ -876,24 +961,38 @@
   function renderStock(){
     var prod = summarize(load('produced')).byType;
     var out  = summarize(load('loaded')).byType;
-    var names = [];
-    load('types').forEach(function(t){ var l = typeLabel(t); if(names.indexOf(l)<0) names.push(l); });
-    Object.keys(prod).concat(Object.keys(out)).forEach(function(n){ if(names.indexOf(n)<0) names.push(n); });
+    var labels = [];
+    load('types').forEach(function(t){ var l = typeLabel(t); if(labels.indexOf(l)<0) labels.push(l); });
+    Object.keys(prod).concat(Object.keys(out)).forEach(function(n){ if(labels.indexOf(n)<0) labels.push(n); });
     var box = document.getElementById('stockBox');
-    if(!names.length){
-      box.innerHTML = '<div class="empty">هنوز شمشی ثبت نشده است.</div>';
+    if(!labels.length){
+      box.innerHTML = '<div class="table-wrap"><div class="empty">هنوز شمشی ثبت نشده است.</div></div>';
       return;
     }
-    var tot = {pc:0,pw:0,lc:0,lw:0};
-    var html = '<table><thead><tr><th>نوع شمش</th><th>تولید</th><th>بارگیری</th><th>موجودی (عدد)</th><th>موجودی (کیلوگرم)</th></tr></thead><tbody>';
-    names.forEach(function(n){
-      var p = prod[n] || {count:0,weight:0}, l = out[n] || {count:0,weight:0};
-      var rc = p.count - l.count, rw = p.weight - l.weight;
-      tot.pc+=p.count; tot.pw+=p.weight; tot.lc+=l.count; tot.lw+=l.weight;
-      html += '<tr><td>'+esc(n)+'</td><td>'+fa(p.count)+'</td><td>'+fa(l.count)+'</td>' +
-        '<td class="'+(rc<0?'neg':'pos')+'">'+fa(rc)+'</td><td class="'+(rw<0?'neg':'pos')+'">'+fa(rw)+'</td></tr>';
+    var map = {}, tot = {pc:0,pw:0,lc:0,lw:0};
+    labels.forEach(function(l){
+      var p = prod[l] || {count:0,weight:0}, q = out[l] || {count:0,weight:0};
+      map[l] = {pc:p.count, pw:p.weight, lc:q.count, lw:q.weight};
+      tot.pc+=p.count; tot.pw+=p.weight; tot.lc+=q.count; tot.lw+=q.weight;
     });
-    html += '</tbody><tfoot><tr><td>جمع کل</td><td>'+fa(tot.pc)+'</td><td>'+fa(tot.lc)+'</td><td>'+fa(tot.pc-tot.lc)+'</td><td>'+fa(tot.pw-tot.lw)+'</td></tr></tfoot></table>';
+    var groups = makeGroups(map,
+      function(){ return {pc:0,pw:0,lc:0,lw:0}; },
+      function(a,b){ return {pc:a.pc+b.pc, pw:a.pw+b.pw, lc:a.lc+b.lc, lw:a.lw+b.lw}; });
+    var rc = tot.pc - tot.lc, rw = tot.pw - tot.lw;
+    var html = '<div class="stat"><div class="stat-head"><span class="dot"></span>موجودی کل</div>' +
+      '<div class="big '+(rc<0?'neg':'')+'">'+fa(rc)+' <small>شمش</small></div>' +
+      '<div class="weight">وزن کل: '+fa(rw)+' کیلوگرم</div></div>';
+    html += accHTML(groups, {
+      cls:    function(v){ return (v.pc-v.lc)<0 ? 'neg' : ''; },
+      sum:    function(v){ return fa(v.pc-v.lc)+' شمش'; },
+      short:  function(v){ return fa(v.pc-v.lc)+' شمش'; },
+      detail: function(v){
+        var r = v.pc-v.lc, w = v.pw-v.lw;
+        return '<div><span>تولید شده</span><b>'+fa(v.pc)+' شمش · '+fa(v.pw)+' کیلوگرم</b></div>' +
+               '<div><span>بارگیری شده</span><b>'+fa(v.lc)+' شمش · '+fa(v.lw)+' کیلوگرم</b></div>' +
+               '<div><span>موجودی</span><b class="'+(r<0||w<0?'neg':'')+'">'+fa(r)+' شمش · '+fa(w)+' کیلوگرم</b></div>';
+      }
+    });
     box.innerHTML = html;
   }
 
