@@ -129,6 +129,8 @@
   }
   input::placeholder,textarea::placeholder{color:#8795a3}
   textarea{resize:vertical;min-height:70px}
+  input[type=number]{-moz-appearance:textfield;appearance:textfield}
+  input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
   select{appearance:none;-webkit-appearance:none;padding-left:40px;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23566573' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
     background-repeat:no-repeat;background-position:left 14px center;
@@ -164,12 +166,12 @@
   .list-title{margin:30px 4px 12px;font-size:1rem;font-weight:800}
   .table-wrap{overflow-x:auto;border-radius:var(--r-md);box-shadow:var(--inset);padding:6px 8px}
   table{width:100%;border-collapse:collapse;font-size:.9rem}
-  th,td{padding:11px 8px;text-align:right;white-space:nowrap}
+  th,td{padding:11px 6px;text-align:right;white-space:nowrap}
   th{color:var(--muted);font-weight:700;font-size:.8rem}
   tbody tr+tr td,tfoot td{border-top:1px solid rgba(86,101,115,.15)}
   tfoot td{font-weight:800}
   td.del{width:1%}
-  td.del button{color:var(--danger);font-weight:700;padding:4px 8px;border-radius:10px}
+  td.del button{color:var(--danger);font-weight:800;width:32px;height:32px;border-radius:50%;line-height:1}
   td.del button:active{box-shadow:var(--inset)}
   .empty{color:var(--muted);padding:22px 10px;text-align:center;font-size:.92rem}
   .neg{color:var(--danger);font-weight:800}
@@ -182,6 +184,7 @@
   }
   .seg button{padding:10px 4px;border-radius:var(--r-pill);font-weight:700;font-size:.92rem;color:var(--muted)}
   .seg button.on{box-shadow:var(--raise-sm);color:var(--accent)}
+  .dg-title{font-weight:800;font-size:.95rem;margin-bottom:8px}
   .range-title{margin:0 4px 20px;color:var(--muted);font-weight:600;font-size:.92rem}
 
   .stat{border-radius:var(--r-lg);box-shadow:var(--raise);padding:20px;margin-bottom:22px}
@@ -398,11 +401,23 @@
       <button class="icon-btn" data-go="reportRange" aria-label="بازگشت"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
       <h2>انتخاب تاریخ</h2>
     </div>
+    <p class="sub">برای گزارش یک روز، هر دو تاریخ را یکی بگذارید.</p>
     <form class="card" id="pickForm">
-      <div class="row three">
-        <label>سال <select id="pickY"></select></label>
-        <label>ماه <select id="pickM"></select></label>
-        <label>روز <select id="pickD"></select></label>
+      <div class="dg" id="pickFrom">
+        <div class="dg-title">از تاریخ</div>
+        <div class="row three">
+          <select data-part="y" aria-label="سال"></select>
+          <select data-part="m" aria-label="ماه"></select>
+          <select data-part="d" aria-label="روز"></select>
+        </div>
+      </div>
+      <div class="dg" id="pickTo">
+        <div class="dg-title">تا تاریخ</div>
+        <div class="row three">
+          <select data-part="y" aria-label="سال"></select>
+          <select data-part="m" aria-label="ماه"></select>
+          <select data-part="d" aria-label="روز"></select>
+        </div>
       </div>
       <button class="btn-main" type="submit">نمایش گزارش</button>
     </form>
@@ -466,6 +481,19 @@
       return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
     });
   }
+  // نام کامل شمش = نام + ابعاد (ابعاد همیشه چپ‌به‌راست نمایش داده می‌شود: 30×50)
+  function typeLabel(t){
+    var size = (t.size||'').trim();
+    return size ? (t.name||'').trim() + ' \u2066' + size + '\u2069' : (t.name||'').trim();
+  }
+  // برای مقایسه تکراری بودن: فرق ارقام فارسی/لاتین، حروف x و × و فاصله‌ها نادیده گرفته می‌شود
+  function normKey(str){
+    return String(str||'').trim().toLowerCase()
+      .replace(/[۰-۹]/g,function(c){ return '۰۱۲۳۴۵۶۷۸۹'.indexOf(c); })
+      .replace(/[٠-٩]/g,function(c){ return '٠١٢٣٤٥٦٧٨٩'.indexOf(c); })
+      .replace(/[x*✕✖]/g,'×')
+      .replace(/\s+/g,'');
+  }
   function refreshDates(){
     var now = new Date();
     document.getElementById('today').textContent = shamsiLong(now);
@@ -502,10 +530,7 @@
 
   // ---------- ناوبری (با دکمه برگشت گوشی) ----------
   var screens = ['home','choose','types','produced','loaded','reportHome','reportRange','reportPick','reportResult','reportStock'];
-  var ignoreHash = null;
   var lastReport = null;
-
-  function hashId(){ return location.hash.replace('#',''); }
 
   function show(id){
     if(screens.indexOf(id) < 0) id = 'home';
@@ -521,17 +546,47 @@
     if(id==='reportPick') initPick();
     window.scrollTo(0,0);
   }
-  function go(id){
-    show(id);
-    try{
-      if(hashId() !== id){ ignoreHash = id; location.hash = id; }
-    }catch(e){}
+  function go(id){ show(id); }
+
+  // ---------- دکمه بازگشت اندروید (مثلث) ----------
+  // یک مرحله به صفحه قبلی برمی‌گردد؛ در صفحه اصلی با دو بار زدن از برنامه خارج می‌شود.
+  var exitArmed = false, exitTimer;
+  function goBackOne(){
+    var b = document.querySelector('.screen.active .topbar .icon-btn');
+    if(!b) return false;
+    go(b.getAttribute('data-go'));
+    return true;
   }
-  window.addEventListener('hashchange', function(){
-    var h = hashId();
-    if(ignoreHash === h){ ignoreHash = null; return; }
-    show(h);
+  function armSentinel(){ try{ history.pushState({app:1}, ''); }catch(e){} }
+  function onHome(leave){
+    if(exitArmed){ clearTimeout(exitTimer); exitArmed = false; leave(); return; }
+    exitArmed = true;
+    toast('برای خروج، یک بار دیگر بازگشت را بزنید','ok');
+    exitTimer = setTimeout(function(){ exitArmed = false; }, 2200);
+  }
+  try{ history.replaceState({root:1}, ''); armSentinel(); }catch(e){}
+  window.addEventListener('popstate', function(){
+    if(goBackOne()){ armSentinel(); return; }
+    if(exitArmed){ exitArmed = false; clearTimeout(exitTimer); history.back(); return; }
+    onHome(function(){});
+    armSentinel();
   });
+  // اگر برنامه داخل پوسته اندرویدی (Cordova / Capacitor) اجرا شود
+  function nativeBack(){
+    if(goBackOne()) return;
+    onHome(function(){
+      try{
+        if(navigator.app && navigator.app.exitApp) navigator.app.exitApp();
+        else if(window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.App) Capacitor.Plugins.App.exitApp();
+      }catch(e){}
+    });
+  }
+  document.addEventListener('backbutton', function(e){ e.preventDefault(); nativeBack(); }, false);
+  try{
+    if(window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.App){
+      Capacitor.Plugins.App.addListener('backButton', nativeBack);
+    }
+  }catch(e){}
   document.addEventListener('click', function(e){
     var t = e.target.closest('[data-go]');
     if(t) go(t.getAttribute('data-go'));
@@ -558,10 +613,10 @@
       sel.innerHTML = '';
       types.forEach(function(t){
         var o = document.createElement('option');
-        o.value = t.name; o.textContent = t.name;
+        o.value = typeLabel(t); o.textContent = typeLabel(t);
         sel.appendChild(o);
       });
-      if(prev && types.some(function(t){ return t.name===prev; })) sel.value = prev;
+      if(prev && types.some(function(t){ return typeLabel(t)===prev; })) sel.value = prev;
       var empty = !types.length;
       form.querySelector('.hint').classList.toggle('show', empty);
       sel.closest('label').style.display = empty ? 'none' : '';
@@ -574,8 +629,8 @@
   // ---------- جدول ثبت‌های اخیر ----------
   var columns = {
     types:   [['name','نام'],['size','ابعاد'],['length','طول (متر)'],['note','توضیحات']],
-    produced:[['type','نوع شمش'],['count','تعداد'],['weight','وزن (کیلوگرم)'],['note','توضیحات']],
-    loaded:  [['type','نوع شمش'],['count','تعداد'],['weight','وزن (کیلوگرم)'],['buyer','خریدار / مقصد'],['plate','بارنامه / پلاک']]
+    produced:[['type','نوع شمش'],['count','تعداد'],['weight','وزن (کیلو)'],['note','توضیحات']],
+    loaded:  [['type','نوع شمش'],['count','تعداد'],['weight','وزن (کیلو)'],['buyer','خریدار / مقصد'],['plate','بارنامه / پلاک']]
   };
   function renderList(key){
     var box = document.querySelector('[data-list="'+key+'"]');
@@ -598,7 +653,7 @@
         if((c[0]==='count'||c[0]==='weight'||c[0]==='length') && v!=='' && v!=null) v = fa(v);
         html += '<td>'+esc(v)+'</td>';
       });
-      html += '<td class="del"><button data-del="'+key+'" data-id="'+r.id+'">حذف</button></td></tr>';
+      html += '<td class="del"><button data-del="'+key+'" data-id="'+r.id+'" aria-label="حذف" title="حذف">✕</button></td></tr>';
     });
     html += '</tbody></table>';
     box.innerHTML = html;
@@ -624,8 +679,10 @@
       new FormData(form).forEach(function(v,k){ data[k] = String(v).trim(); });
 
       if(key==='types'){
-        var dup = load('types').some(function(t){ return t.name === data.name; });
-        if(dup){ toast('این نوع شمش قبلاً تعریف شده است','err'); return; }
+        var dup = load('types').some(function(t){
+          return normKey(t.name) === normKey(data.name) && normKey(t.size) === normKey(data.size);
+        });
+        if(dup){ toast('این نوع شمش با همین نام و ابعاد قبلاً تعریف شده است','err'); return; }
       }
       if(key!=='types' && !data.type){ toast('ابتدا یک نوع شمش تعریف کنید','err'); return; }
       if(key!=='types' && !(parseFloat(data.count)>0 && parseFloat(data.weight)>0)){
@@ -746,10 +803,11 @@
     renderResult();
   });
 
-  // انتخاب تاریخ شمسی
-  function fillDays(){
-    var m = parseInt(document.getElementById('pickM').value,10);
-    var dSel = document.getElementById('pickD');
+  // انتخاب بازه تاریخ شمسی (از ... تا ...)
+  function part(p,k){ return document.querySelector('#'+p+' [data-part="'+k+'"]'); }
+  function fillDays(p){
+    var m = parseInt(part(p,'m').value,10);
+    var dSel = part(p,'d');
     var max = m<=6 ? 31 : 30;
     var cur = parseInt(dSel.value,10) || 1;
     dSel.innerHTML = '';
@@ -760,9 +818,21 @@
     }
     dSel.value = Math.min(cur,max);
   }
-  function initPick(){
-    var tj = todayJalali();
-    var y = document.getElementById('pickY'), m = document.getElementById('pickM');
+  function setGroup(p,y,m,d){
+    part(p,'y').value = y;
+    part(p,'m').value = m;
+    fillDays(p);
+    part(p,'d').value = d;
+  }
+  function getGroup(p){
+    return [parseInt(part(p,'y').value,10), parseInt(part(p,'m').value,10), parseInt(part(p,'d').value,10)];
+  }
+  function groupDate(p){
+    var j = getGroup(p), g = j2g(j[0],j[1],j[2]);
+    return new Date(g[0], g[1]-1, g[2]);
+  }
+  function initGroup(p,tj){
+    var y = part(p,'y'), m = part(p,'m');
     y.innerHTML = ''; m.innerHTML = '';
     for(var yy=tj.year; yy>=tj.year-5; yy--){
       var o = document.createElement('option');
@@ -774,20 +844,31 @@
       o.value = i+1; o.textContent = n;
       m.appendChild(o);
     });
-    m.value = tj.month;
-    document.getElementById('pickD').innerHTML = '<option value="'+tj.day+'"></option>';
-    document.getElementById('pickD').value = tj.day;
-    fillDays();
-    document.getElementById('pickD').value = tj.day;
+    part(p,'d').innerHTML = '';
+    setGroup(p, tj.year, tj.month, tj.day);
   }
-  document.getElementById('pickM').addEventListener('change', fillDays);
+  function initPick(){
+    var tj = todayJalali();
+    initGroup('pickFrom', tj);
+    initGroup('pickTo', tj);
+  }
+  // اگر «تا» قبل از «از» قرار گرفت، گروه دیگر هم‌تاریخ می‌شود
+  ['pickFrom','pickTo'].forEach(function(p){
+    document.getElementById(p).addEventListener('change', function(e){
+      if(e.target.getAttribute('data-part')==='m') fillDays(p);
+      var other = p==='pickFrom' ? 'pickTo' : 'pickFrom';
+      var a = groupDate('pickFrom'), b = groupDate('pickTo');
+      if(b < a){
+        var j = getGroup(p);
+        setGroup(other, j[0], j[1], j[2]);
+      }
+    });
+  });
   document.getElementById('pickForm').addEventListener('submit', function(e){
     e.preventDefault();
-    var g = j2g(parseInt(document.getElementById('pickY').value,10),
-                parseInt(document.getElementById('pickM').value,10),
-                parseInt(document.getElementById('pickD').value,10));
-    var s = new Date(g[0], g[1]-1, g[2]);
-    lastReport = {kind:'pick', from:s, to:addDays(s,1), label:shamsi(s)};
+    var a = groupDate('pickFrom'), b = groupDate('pickTo');
+    var label = a.getTime()===b.getTime() ? shamsi(a) : 'از ' + shamsi(a) + ' تا ' + shamsi(b);
+    lastReport = {kind:'pick', from:a, to:addDays(b,1), label:label};
     go('reportResult');
   });
 
@@ -796,7 +877,7 @@
     var prod = summarize(load('produced')).byType;
     var out  = summarize(load('loaded')).byType;
     var names = [];
-    load('types').forEach(function(t){ if(names.indexOf(t.name)<0) names.push(t.name); });
+    load('types').forEach(function(t){ var l = typeLabel(t); if(names.indexOf(l)<0) names.push(l); });
     Object.keys(prod).concat(Object.keys(out)).forEach(function(n){ if(names.indexOf(n)<0) names.push(n); });
     var box = document.getElementById('stockBox');
     if(!names.length){
@@ -816,7 +897,22 @@
     box.innerHTML = html;
   }
 
-  show(hashId());
+  // رکوردهای قدیمی که فقط نام شمش داشتند، اگر نام فقط یک نوع را نشان بدهد به نام کامل (نام + ابعاد) تبدیل می‌شوند
+  (function migrate(){
+    var types = load('types');
+    var labels = types.map(typeLabel);
+    ['produced','loaded'].forEach(function(key){
+      var recs = load(key), changed = false;
+      recs.forEach(function(r){
+        if(labels.indexOf(r.type) >= 0) return;
+        var m = types.filter(function(t){ return t.name === r.type; });
+        if(m.length === 1){ r.type = typeLabel(m[0]); changed = true; }
+      });
+      if(changed) save(key, recs);
+    });
+  })();
+
+  show('home');
 })();
 </script>
 </body>
